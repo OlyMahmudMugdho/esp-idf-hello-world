@@ -29,20 +29,9 @@ jobs:
           cp build/bootloader/bootloader.bin firmware/
           cp build/partition_table/partition-table.bin firmware/
           cp build/esp-idf-hello-world.bin firmware/
-          cp build/flash_args firmware/
 
-      - name: Merge firmware
-        run: |
-          python /opt/esp/idf/components/esptool_py/esptool/esptool.py \
-            --chip esp32s3 \
-            merge_bin \
-            -o firmware/esp32s3-hello-world-merged.bin \
-            --flash_mode dio \
-            --flash_freq 80m \
-            --flash_size detect \
-            0x0 build/bootloader/bootloader.bin \
-            0x8000 build/partition_table/partition-table.bin \
-            0x10000 build/esp-idf-hello-world.bin
+          echo "Firmware files:"
+          ls -lh firmware/
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
