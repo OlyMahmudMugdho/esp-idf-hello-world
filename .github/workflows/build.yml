@@ -15,23 +15,29 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: ESP-IDF build
+      - name: ESP-IDF build and merge
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: v4.4
           target: esp32s3
           path: '.'
+          command: |
+            idf.py build
+            cd build
+            esptool.py --chip esp32s3 merge_bin \
+              -o esp32s3-hello-world.bin \
+              @flash_args
 
-      - name: Prepare ELF
+      - name: Prepare firmware
         run: |
           mkdir -p firmware
-          cp build/esp-idf-hello-world.elf firmware/
+          cp build/esp32s3-hello-world.bin firmware/
 
-          echo "ELF:"
+          echo "Firmware:"
           ls -lh firmware/
 
-      - name: Upload ELF
+      - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: esp32s3-firmware
-          path: firmware/esp-idf-hello-world.elf
+          path: firmware/esp32s3-hello-world.bin
