@@ -13,35 +13,39 @@ pipeline {
             }
         }
 
-        stage('Pull ESP-IDF Docker Image') {
+        stage('Verify Workspace') {
+            steps {
+                sh '''
+                    echo "Jenkins workspace:"
+                    pwd
+
+                    echo
+                    echo "Files:"
+                    ls -la
+
+                    echo
+                    echo "Project CMakeLists.txt:"
+                    test -f CMakeLists.txt
+                '''
+            }
+        }
+
+        stage('Build ESP32-S3 Firmware') {
             steps {
                 sh '''
                     docker pull ${ESP_IDF_IMAGE}
-                '''
-            }
-        }
 
-        stage('Build Firmware') {
-            steps {
-                sh '''
                     docker run --rm \
                         -v "$WORKSPACE:/project" \
                         -w /project \
                         ${ESP_IDF_IMAGE} \
-                        idf.py build
-                '''
-            }
-        }
-
-        stage('Create Merged Binary') {
-            steps {
-                sh '''
-                    docker run --rm \
-                        -v "$WORKSPACE:/project" \
-                        -w /project \
-                        ${ESP_IDF_IMAGE} \
-                        idf.py merge-bin \
-                        -o build/firmware-merged.bin
+                        bash -c '
+                            pwd
+                            ls -la
+                            idf.py build
+                            idf.py merge-bin \
+                                -o build/firmware-merged.bin
+                        '
                 '''
             }
         }
@@ -49,8 +53,10 @@ pipeline {
         stage('Verify Firmware') {
             steps {
                 sh '''
+                    test -f build/firmware-merged.bin
+
+                    echo "Generated firmware:"
                     ls -lh build/firmware-merged.bin
-                    file build/firmware-merged.bin
                 '''
             }
         }
@@ -58,12 +64,14 @@ pipeline {
 
     post {
         success {
-            archiveArtifacts artifacts: 'build/firmware-merged.bin',
-                           fingerprint: true
+            archiveArtifacts(
+                artifacts: 'build/firmware-merged.bin',
+                fingerprint: true
+            )
         }
 
         always {
-            echo 'ESP-IDF build finished.'
+            echo 'ESP-IDF pipeline finished.'
         }
     }
 }
