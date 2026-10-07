@@ -21,17 +21,18 @@ pipeline {
                     pwd
 
                     echo
-                    echo "Files:"
+                    echo "Workspace files:"
                     ls -la
 
                     echo
-                    echo "Checking project..."
+                    echo "Checking project files..."
+
                     test -f CMakeLists.txt
                     test -f main/CMakeLists.txt
                     test -f main/main.c
 
                     echo
-                    echo "Project verified."
+                    echo "Project files verified successfully."
                 '''
             }
         }
@@ -47,6 +48,7 @@ pipeline {
 
                     HOST_WORKSPACE="${JENKINS_HOST_HOME}${WORKSPACE#/var/jenkins_home}"
 
+                    echo
                     echo "Jenkins workspace:"
                     echo "${WORKSPACE}"
 
@@ -68,7 +70,7 @@ pipeline {
                             pwd
 
                             echo
-                            echo "Mounted files:"
+                            echo "Mounted project files:"
                             ls -la
 
                             echo
@@ -76,7 +78,7 @@ pipeline {
                             test -f CMakeLists.txt
 
                             echo
-                            echo "SUCCESS: Docker mount works."
+                            echo "SUCCESS: Docker mount is working."
                         '
                 '''
             }
@@ -91,7 +93,9 @@ pipeline {
                     echo "BUILD ESP32-S3 FIRMWARE"
                     echo "========================================"
 
+                    echo
                     echo "Pulling ESP-IDF image..."
+
                     docker pull "${ESP_IDF_IMAGE}"
 
                     HOST_WORKSPACE="${JENKINS_HOST_HOME}${WORKSPACE#/var/jenkins_home}"
@@ -99,6 +103,9 @@ pipeline {
                     echo
                     echo "Host workspace:"
                     echo "${HOST_WORKSPACE}"
+
+                    echo
+                    echo "Starting ESP-IDF container..."
 
                     docker run --rm \
                         -v "${HOST_WORKSPACE}:/project" \
@@ -124,21 +131,26 @@ pipeline {
                             ls -la
 
                             echo
-                            echo "Checking CMakeLists.txt..."
-                            test -f CMakeLists.txt
+                            echo "========================================"
+                            echo "BUILDING PROJECT"
+                            echo "========================================"
 
-                            echo
-                            echo "Building..."
                             idf.py build
 
                             echo
-                            echo "Creating merged binary..."
+                            echo "========================================"
+                            echo "CREATING MERGED BINARY"
+                            echo "========================================"
+
                             idf.py merge-bin \
-                                -o build/firmware-merged.bin
+                                -o /project/build/firmware-merged.bin
 
                             echo
-                            echo "Generated firmware:"
-                            ls -lh build/firmware-merged.bin
+                            echo "========================================"
+                            echo "MERGED BINARY CREATED"
+                            echo "========================================"
+
+                            ls -lh /project/build/firmware-merged.bin
                         '
                 '''
             }
@@ -157,15 +169,24 @@ pipeline {
 
                     echo
                     echo "Firmware generated successfully:"
+
                     ls -lh build/firmware-merged.bin
+
+                    echo
+                    echo "Firmware size:"
+
+                    du -h build/firmware-merged.bin
                 '''
             }
         }
     }
 
     post {
+
         success {
-            echo 'ESP32-S3 firmware build successful.'
+            echo '========================================'
+            echo 'ESP32-S3 BUILD SUCCESSFUL'
+            echo '========================================'
 
             archiveArtifacts(
                 artifacts: 'build/firmware-merged.bin',
@@ -174,11 +195,15 @@ pipeline {
         }
 
         failure {
-            echo 'ESP32-S3 firmware build failed.'
+            echo '========================================'
+            echo 'ESP32-S3 BUILD FAILED'
+            echo '========================================'
         }
 
         always {
-            echo 'ESP-IDF pipeline finished.'
+            echo '========================================'
+            echo 'ESP-IDF PIPELINE FINISHED'
+            echo '========================================'
         }
     }
 }
