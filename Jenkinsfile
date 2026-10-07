@@ -139,16 +139,44 @@ pipeline {
 
                             echo
                             echo "========================================"
+                            echo "BUILD COMPLETED"
+                            echo "========================================"
+
+                            echo
+                            echo "Checking build artifacts..."
+
+                            test -f build/bootloader/bootloader.bin
+                            test -f build/partition_table/partition-table.bin
+                            test -f build/esp-idf-hello-world.bin
+
+                            ls -lh \
+                                build/bootloader/bootloader.bin \
+                                build/partition_table/partition-table.bin \
+                                build/esp-idf-hello-world.bin
+
+                            echo
+                            echo "========================================"
                             echo "CREATING MERGED BINARY"
                             echo "========================================"
 
-                            idf.py merge-bin \
-                                -o /project/build/firmware-merged.bin
+                            cd /project/build
+
+                            python -m esptool --chip esp32s3 merge-bin \
+                                -o /project/build/firmware-merged.bin \
+                                -f raw \
+                                --flash-mode dio \
+                                --flash-freq 80m \
+                                --flash-size 2MB \
+                                0x0 bootloader/bootloader.bin \
+                                0x8000 partition_table/partition-table.bin \
+                                0x10000 esp-idf-hello-world.bin
 
                             echo
                             echo "========================================"
                             echo "MERGED BINARY CREATED"
                             echo "========================================"
+
+                            test -f /project/build/firmware-merged.bin
 
                             ls -lh /project/build/firmware-merged.bin
                         '
